@@ -1,3 +1,6 @@
+#include "Hooks.h"
+#include "Settings.h"
+
 namespace
 {
 	void InitializeLog()
@@ -10,7 +13,7 @@ namespace
 			util::report_and_fail("Failed to find standard logging directory"sv);
 		}
 
-		*path /= fmt::format("{}.log"sv, Plugin::NAME);
+		*path /= fmt::format("{}.log"sv, Version::PROJECT.data());
 		auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(path->string(), true);
 #endif
 
@@ -25,28 +28,64 @@ namespace
 		log->flush_on(level);
 
 		spdlog::set_default_logger(std::move(log));
-		spdlog::set_pattern("%g(%#): [%^%l%$] %v"s);
+		spdlog::set_pattern("[%H:%M:%S:%e] %v"s);
 	}
-}
 
-extern "C" DLLEXPORT constinit auto SKSEPlugin_Version = []() {
-	SKSE::PluginVersionData v;
+	void MessageHandler(F4SE::MessagingInterface::Message* a_msg)
+	{
+		switch (a_msg->type)
+		{
+			case F4SE::MessagingInterface::kGameDataReady:
+				Settings::Install();
+				Settings::ReadIniSettings();
+				break;
+			case F4SE::MessagingInterface::kPreLoadGame:
+				Hooks::ResetVars();
+				break;
+			default:
+				break;
+		}
+	}
 
-	v.PluginVersion(Plugin::VERSION);
-	v.PluginName(Plugin::NAME);
+	extern "C" DLLEXPORT bool F4SEAPI F4SEPlugin_Query(const F4SE::QueryInterface * a_f4se, F4SE::PluginInfo * a_info)
+	{
+		a_info->infoVersion = F4SE::PluginInfo::kVersion;
+		a_info->name = Version::PROJECT.data();
+		a_info->version = Version::MAJOR;
 
-	v.UsesAddressLibrary(true);
-	v.CompatibleVersions({ SKSE::RUNTIME_LATEST });
+		if (a_f4se->IsEditor()) {
+			logger::critical("loaded in editor");
+			return false;
+		}
 
-	return v;
-}();
+		const auto ver = a_f4se->RuntimeVersion();
+		if (ver < F4SE::RUNTIME_1_10_162) {
+			logger::critical("unsupported runtime v{}", ver.string());
+			return false;
+		}
 
-extern "C" DLLEXPORT bool SKSEAPI SKSEPlugin_Load(const SKSE::LoadInterface* a_skse)
-{
-	InitializeLog();
-	logger::info("{} v{}"sv, Plugin::NAME, Plugin::VERSION.string());
+		return true;
+	}
 
-	SKSE::Init(a_skse);
+	extern "C" DLLEXPORT bool F4SEAPI F4SEPlugin_Load(const F4SE::LoadInterface * a_f4se)
+	{
+		InitializeLog();
+		logger::info(FMT_STRING("{} v{}"), Version::PROJECT.data(), Version::MAJOR);
+		logger::info("Game version : {}", a_f4se->RuntimeVersion().string());
 
-	return true;
+		F4SE::Init(a_f4se);
+		F4SE::AllocTrampoline(1 * 1024);
+
+		logger::info("hello world!");
+
+		if (!F4SE::GetMessagingInterface()->RegisterListener(MessageHandler))
+		{
+			logger::info("Cannot register listener!");
+			return false;
+		}
+
+		Hooks::Hook();
+
+		return true;
+	}
 }
