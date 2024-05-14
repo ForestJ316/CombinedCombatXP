@@ -1,4 +1,10 @@
 {
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 21,
+    "patch": 0
+  },
   "configurePresets": [
     {
       "binaryDir": "${sourceDir}/build",
@@ -23,6 +29,10 @@
         "CMAKE_TOOLCHAIN_FILE": {
           "type": "STRING",
           "value": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+        },
+        "VCPKG_OVERLAY_PORTS": {
+          "type": "STRING",
+          "value": "${sourceDir}/cmake/ports/"
         }
       },
       "hidden": true,
@@ -30,6 +40,18 @@
     },
     {
       "cacheVariables": {
+        "Boost_USE_STATIC_LIBS": {
+          "type": "BOOL",
+          "value": "ON"
+        },
+        "Boost_USE_STATIC_RUNTIME": {
+          "type": "BOOL",
+          "value": "OFF"
+        },
+        "CMAKE_EXE_LINKER_FLAGS_RELEASE": {
+          "type": "STRING",
+          "value": "/DEBUG:FASTLINK"
+        },
         "CMAKE_MSVC_RUNTIME_LIBRARY": {
           "type": "STRING",
           "value": "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL"
@@ -43,12 +65,8 @@
       "name": "windows"
     },
     {
-      "architecture": {
-        "strategy": "set",
-        "value": "x64"
-      },
       "cacheVariables": {
-        "CMAKE_CXX_FLAGS": "/EHsc /MP /W4 /WX"
+        "CMAKE_CXX_FLAGS": "/EHsc /MP /W4 /WX /external:W0"
       },
       "generator": "Visual Studio 17 2022",
       "inherits": [
@@ -56,9 +74,8 @@
         "vcpkg",
         "windows"
       ],
-      "name": "vs2022-windows",
+      "name": "vs2022-windows-vcpkg",
       "toolset": "v143"
     }
-  ],
-  "version": 3
+  ]
 }
