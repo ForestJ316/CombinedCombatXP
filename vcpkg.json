@@ -1,9 +1,13 @@
 {
-  "name": "example",
-  "version": "1",
+  "name": "combinedcombatxp",
+  "version-string": "1.1.0",
+  "license": "MIT",
   "dependencies": [
     "boost-stl-interfaces",
-    "rsm-binary-io",
+    "fmt",
+    "rsm-mmio",
+    "simpleini",
     "spdlog"
-  ]
+  ],
+  "builtin-baseline": "9224b3bbd8df24999d85720b1d005dd6f969ade0"
 }
